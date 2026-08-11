@@ -15,100 +15,23 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.1.0/dist/chartjs-plugin-zoom.min.js"></script>
     <script defer src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
     <script defer src="assets/js/dashboard.js"></script>
 </head>
 
 <body>
-    <main class="dashboard-shell">
-        <section class="hero">
-            <div class="hero-card">
-                <span class="kicker"><span class="kicker-dot"></span> Monitoring LPM dan PO</span>
-                <h1 class="hero-title">Dashboard yang lebih bersih, modern, dan siap dipakai harian.</h1>
-                <p class="hero-copy">
-                    Struktur file dipisah agar lebih rapi, tampilan dibuat lebih tenang tanpa terlalu banyak gradient,
-                    dan tabel menggunakan DataTables supaya sorting, search, dan pagination lebih enak dipakai.
-                </p>
-                <div class="hero-meta">
-                    <span class="pill"><strong>UI</strong> modern, clean, dan konsisten</span>
-                    <span class="pill"><strong>Table</strong> DataTables</span>
-                    <span class="pill"><strong>Parsing</strong> client-side Excel</span>
-                </div>
+    <header class="dashboard-header">
+        <div class="dashboard-header-content">
+            <h1>Dashboard Pengelolaan LPM & Purchase Order</h1>
+            <p>PT Enera Teknika Utama</p>
+            <div style="position: absolute; top: 18px; right: 28px;">
+                <button class="btn ghost" id="openSideMenuBtn" type="button">Data &amp; Upload</button>
             </div>
-
-            <aside class="status-card">
-                <div class="status-head">
-                    <span class="status-label">Status</span>
-                    <span class="status-chip"><span id="statusDot" class="status-dot"></span><span
-                            id="statusText">Menunggu data</span></span>
-                </div>
-                <div class="status-progress" id="statusMessage">
-                    Upload file LPM dan PO untuk memulai monitoring.
-                </div>
-                <div class="status-files">
-                    <div class="status-file"><span>LPM</span><b id="statusFileLpm">-</b></div>
-                    <div class="status-file"><span>PO</span><b id="statusFilePo">-</b></div>
-                </div>
-                <button class="btn ghost" id="resetBtn" type="button">Reset data</button>
-            </aside>
-        </section>
-
-        <div class="section-title">
-            <span class="section-dot"></span>
-            <h2>Upload File</h2>
         </div>
+    </header>
 
-        <section class="upload-grid">
-            <div class="uploader" id="uploaderLpm">
-                <div class="uploader-top">
-                    <div>
-                        <h3 class="uploader-title">File LPM</h3>
-                        <p class="uploader-hint">Klik atau drag file REKAP LPM .xlsx / .xls ke area ini.</p>
-                    </div>
-                    <div class="uploader-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3v12"></path>
-                            <path d="M8 7l4-4 4 4"></path>
-                            <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path>
-                        </svg>
-                    </div>
-                </div>
-                <input id="inputLpm" type="file" accept=".xlsx,.xls">
-                <div class="uploader-actions">
-                    <button class="btn primary" type="button">Pilih file</button>
-                </div>
-                <div id="dzLpmChip"></div>
-                <div class="uploaded-file" id="dzLpmName">Belum ada file dipilih</div>
-            </div>
-
-            <div class="uploader" id="uploaderPo">
-                <div class="uploader-top">
-                    <div>
-                        <h3 class="uploader-title">File PO</h3>
-                        <p class="uploader-hint">Klik atau drag file REKAP PO .xlsx / .xls ke area ini.</p>
-                    </div>
-                    <div class="uploader-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 21V9"></path>
-                            <path d="M8 13l4 4 4-4"></path>
-                            <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"></path>
-                        </svg>
-                    </div>
-                </div>
-                <input id="inputPo" type="file" accept=".xlsx,.xls">
-                <div class="uploader-actions">
-                    <button class="btn primary" type="button">Pilih file</button>
-                </div>
-                <div id="dzPoChip"></div>
-                <div class="uploaded-file" id="dzPoName">Belum ada file dipilih</div>
-            </div>
-
-            <p class="file-note" id="uploadNote">Data hanya diproses di browser Anda. Tidak ada file yang dikirim ke
-                server.</p>
-        </section>
-
+    <main class="dashboard-shell">
         <section class="control-bar hidden" id="controlBar">
             <div class="control-files">
                 <span class="tag">LPM: <strong id="controlFileLpm">-</strong></span>
@@ -120,6 +43,85 @@
                 <button class="btn ghost" id="changeBtn" type="button">Ganti file</button>
             </div>
         </section>
+
+        <!-- Side panel for Data & Upload (moved from dashboard) -->
+        <aside id="sidePanel" class="side-panel hidden" aria-hidden="true">
+            <div class="side-panel-inner">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+                    <h3 style="margin:0">Data &amp; Upload</h3>
+                    <button class="btn ghost" id="closeSideMenuBtn" type="button" aria-label="Tutup">✕</button>
+                </div>
+                <section class="upload-grid" id="uploadGrid">
+                    <div class="uploader" id="uploaderLpm">
+                        <div class="uploader-top">
+                            <div>
+                                <h3 class="uploader-title">File LPM</h3>
+                                <p class="uploader-hint">Klik atau drag file REKAP LPM .xlsx / .xls ke area ini.</p>
+                            </div>
+                            <div class="uploader-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 3v12"></path>
+                                    <path d="M8 7l4-4 4 4"></path>
+                                    <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <input id="inputLpm" type="file" accept=".xlsx,.xls">
+                        <div class="uploader-actions">
+                            <button class="btn primary" type="button">Pilih file</button>
+                        </div>
+                        <div id="dzLpmChip"></div>
+                        <div class="uploaded-file" id="dzLpmName">Belum ada file dipilih</div>
+                    </div>
+
+                    <div class="uploader" id="uploaderPo">
+                        <div class="uploader-top">
+                            <div>
+                                <h3 class="uploader-title">File PO</h3>
+                                <p class="uploader-hint">Klik atau drag file REKAP PO .xlsx / .xls ke area ini.</p>
+                            </div>
+                            <div class="uploader-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 21V9"></path>
+                                    <path d="M8 13l4 4 4-4"></path>
+                                    <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <input id="inputPo" type="file" accept=".xlsx,.xls">
+                        <div class="uploader-actions">
+                            <button class="btn primary" type="button">Pilih file</button>
+                        </div>
+                        <div id="dzPoChip"></div>
+                        <div class="uploaded-file" id="dzPoName">Belum ada file dipilih</div>
+                    </div>
+
+                    <p class="file-note" id="uploadNote">Data hanya diproses di browser Anda. Tidak ada file yang
+                        dikirim ke server.</p>
+                </section>
+
+                <aside class="status-card">
+                    <div class="status-head">
+                        <span class="status-label">Status</span>
+                        <span class="status-chip"><span id="statusDot" class="status-dot"></span><span
+                                id="statusText">Menunggu data</span></span>
+                    </div>
+                    <div class="status-progress" id="statusMessage">
+                        Upload file LPM dan PO untuk memulai monitoring.
+                    </div>
+                    <div class="status-files">
+                        <div class="status-file"><span>LPM</span><b id="statusFileLpm">-</b></div>
+                        <div class="status-file"><span>PO</span><b id="statusFilePo">-</b></div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap; margin-top:12px;">
+                        <button class="btn ghost" id="toggleUploadBtn" type="button">Sembunyikan Upload</button>
+                        <button class="btn ghost" id="resetBtn" type="button">Reset data</button>
+                    </div>
+                </aside>
+            </div>
+        </aside>
 
         <section id="dashboard" class="hidden">
             <div class="section-title">
@@ -191,7 +193,8 @@
                             </svg>
                         </div>
                     </div>
-                    <h3 class="metric-value" id="kpiValue">Rp 0</h3>
+                    <h3 class="metric-value" id="kpiValue"><span class="currency">Rp</span> <span
+                            class="amount">0</span></h3>
                     <p class="metric-sub" id="kpiValueNote">Belum ada nilai PO yang terbaca</p>
                 </article>
             </div>
@@ -199,22 +202,43 @@
             <div class="section-title">
                 <span class="section-dot"></span>
                 <h2>Tren dan Distribusi</h2>
+                <select id="yearSelect" class="year-selector">
+                    <option value="">Pilih Tahun</option>
+                </select>
             </div>
 
             <div class="grid-2">
                 <article class="panel">
-                    <h3>Jumlah LPM per Bulan</h3>
+                    <div class="panel-head">
+                        <h3>Jumlah LPM per Bulan</h3>
+                        <div class="panel-controls">
+                            <button class="btn ghost small chart-fullscreen-btn" data-target="chartLpm" type="button"
+                                aria-label="Toggle fullscreen"></button>
+                        </div>
+                    </div>
                     <div class="chart-box"><canvas id="chartLpm"></canvas></div>
                 </article>
                 <article class="panel">
-                    <h3>Jumlah PO per Bulan</h3>
+                    <div class="panel-head">
+                        <h3>Jumlah PO per Bulan</h3>
+                        <div class="panel-controls">
+                            <button class="btn ghost small chart-fullscreen-btn" data-target="chartPo" type="button"
+                                aria-label="Toggle fullscreen"></button>
+                        </div>
+                    </div>
                     <div class="chart-box"><canvas id="chartPo"></canvas></div>
                 </article>
             </div>
 
             <div class="grid-2" style="margin-top:16px;">
                 <article class="panel">
-                    <h3>Status Item LPM</h3>
+                    <div class="panel-head">
+                        <h3>Status Item LPM</h3>
+                        <div class="panel-controls">
+                            <button class="btn ghost small chart-fullscreen-btn" data-target="chartStatus" type="button"
+                                aria-label="Toggle fullscreen"></button>
+                        </div>
+                    </div>
                     <div class="chart-box small"><canvas id="chartStatus"></canvas></div>
                     <div class="legend">
                         <span><i style="background:#1f9d62"></i>Diterima</span>
@@ -223,7 +247,13 @@
                     </div>
                 </article>
                 <article class="panel">
-                    <h3>Nilai PO per Vendor</h3>
+                    <div class="panel-head">
+                        <h3>Nilai PO per Vendor</h3>
+                        <div class="panel-controls">
+                            <button class="btn ghost small chart-fullscreen-btn" data-target="chartVendor" type="button"
+                                aria-label="Toggle fullscreen"></button>
+                        </div>
+                    </div>
                     <div class="chart-box small"><canvas id="chartVendor"></canvas></div>
                 </article>
             </div>

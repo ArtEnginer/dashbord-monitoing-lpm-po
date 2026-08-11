@@ -61,6 +61,54 @@
     return numeric.toLocaleString("id-ID");
   }
 
+  function setKpiValue(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      if (dom.kpiValue)
+        dom.kpiValue.innerHTML = `<span class="currency">Rp</span> <span class="amount">0</span>`;
+      return;
+    }
+    const amount = Math.round(numeric).toLocaleString("id-ID");
+    if (dom.kpiValue)
+      dom.kpiValue.innerHTML = `<span class="currency">Rp</span> <span class="amount">${escapeHtml(amount)}</span>`;
+  }
+
+  // SVG icons for expand / collapse
+  function expandIcon() {
+    return `
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 3H3v5" />
+        <path d="M16 3h5v5" />
+        <path d="M16 21h5v-5" />
+        <path d="M8 21H3v-5" />
+      </svg>
+    `;
+  }
+
+  function collapseIcon() {
+    return `
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M8 6h8" />
+        <path d="M8 18h8" />
+        <path d="M12 6v12" />
+      </svg>
+    `;
+  }
+
+  function setBtnToExpand(btn) {
+    try {
+      btn.innerHTML = expandIcon();
+      btn.setAttribute("aria-pressed", "false");
+    } catch (e) {}
+  }
+
+  function setBtnToCollapse(btn) {
+    try {
+      btn.innerHTML = collapseIcon();
+      btn.setAttribute("aria-pressed", "true");
+    } catch (e) {}
+  }
+
   function toISODate(value) {
     if (value === null || value === undefined || value === "") return null;
     if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -190,6 +238,14 @@
   function setStatus(text, active) {
     dom.statusText.textContent = text;
     dom.statusDot.classList.toggle("on", Boolean(active));
+    if (dom.statusMessage) {
+      dom.statusMessage.textContent =
+        text === "Data siap"
+          ? "File sudah terbaca. Gunakan filter, pilih tahun, atau geser grafik untuk menelusuri data lebih cepat."
+          : text === "Sebagian data dimuat"
+            ? "Satu file sudah siap. Unggah file pasangan supaya ringkasan dan grafik lengkap muncul."
+            : "Upload file LPM dan PO untuk memulai monitoring.";
+    }
   }
 
   function getFileName(value) {
@@ -270,6 +326,12 @@
 
   function updateLoadedState() {
     document.body.classList.toggle("is-loading", Boolean(state.isLoading));
+    if (dom.uploadGrid) {
+      dom.uploadGrid.classList.toggle(
+        "hidden",
+        state.loaded.lpm && state.loaded.po,
+      );
+    }
     if (state.isLoading) {
       dom.uploadNote.textContent = "Memproses file, mohon tunggu...";
     } else {
@@ -561,7 +623,7 @@
     dom.kpiLpm.textContent = totalLpm.toLocaleString("id-ID");
     dom.kpiPo.textContent = totalPo.toLocaleString("id-ID");
     dom.kpiVendor.textContent = uniqueVendors.length.toLocaleString("id-ID");
-    dom.kpiValue.textContent = fmtIDR(totalValue);
+    setKpiValue(totalValue);
     dom.kpiValueNote.textContent =
       totalValue > 0
         ? `Total gabungan sekitar ${(totalValue / 1000000).toFixed(2)} juta rupiah`
@@ -621,8 +683,8 @@
           legend: { display: false },
           zoom: {
             zoom: {
-              wheel: { enabled: true, speed: 0.1 },
-              pinch: { enabled: true },
+              wheel: { enabled: false, speed: 0.1 },
+              pinch: { enabled: false },
               mode: "xy",
             },
             pan: {
@@ -689,8 +751,8 @@
           legend: { display: false },
           zoom: {
             zoom: {
-              wheel: { enabled: true, speed: 0.1 },
-              pinch: { enabled: true },
+              wheel: { enabled: false, speed: 0.1 },
+              pinch: { enabled: false },
               mode: "xy",
             },
             pan: {
@@ -977,6 +1039,13 @@
       updateLoadedState();
       renderDashboard();
     } catch (error) {
+      state.loaded.lpm = false;
+      state.lpmRows = [];
+      state.lpmHandle = null;
+      state.fileNames.lpm = "-";
+      setFileLabel(dom.uploadFileLpm, null);
+      setFileChip(dom.fileChipLpm, null);
+      dom.uploaderLpm.classList.remove("loaded");
       alert("Gagal membaca file LPM: " + error.message);
     } finally {
       state.isLoading = false;
@@ -1002,6 +1071,14 @@
       updateLoadedState();
       renderDashboard();
     } catch (error) {
+      state.loaded.po = false;
+      state.poRows = [];
+      state.poDetails = [];
+      state.poHandle = null;
+      state.fileNames.po = "-";
+      setFileLabel(dom.uploadFilePo, null);
+      setFileChip(dom.fileChipPo, null);
+      dom.uploaderPo.classList.remove("loaded");
       alert("Gagal membaca file PO: " + error.message);
     } finally {
       state.isLoading = false;
@@ -1011,6 +1088,7 @@
 
   function wireDropzone(dropzone, input, handler, pickerOptions) {
     dropzone.addEventListener("click", async () => {
+      if (state.isLoading) return;
       if (window.showOpenFilePicker) {
         try {
           const [handle] = await window.showOpenFilePicker(pickerOptions);
@@ -1025,11 +1103,16 @@
     });
 
     input.addEventListener("change", (event) => {
+      if (state.isLoading) return;
       const [file] = event.target.files || [];
-      if (file) handler(file, null);
+      if (file) {
+        handler(file, null);
+        event.target.value = "";
+      }
     });
 
     dropzone.addEventListener("dragover", (event) => {
+      if (state.isLoading) return;
       event.preventDefault();
       dropzone.classList.add("drag");
     });
@@ -1037,6 +1120,7 @@
       dropzone.classList.remove("drag"),
     );
     dropzone.addEventListener("drop", (event) => {
+      if (state.isLoading) return;
       event.preventDefault();
       dropzone.classList.remove("drag");
       const [file] = event.dataTransfer.files || [];
@@ -1062,12 +1146,12 @@
     setFileChip(dom.fileChipPo, null);
     dom.uploaderLpm.classList.remove("loaded");
     dom.uploaderPo.classList.remove("loaded");
-    destroyCharts();
+    // destroyCharts();
     destroyTables();
     dom.kpiLpm.textContent = "0";
     dom.kpiPo.textContent = "0";
     dom.kpiVendor.textContent = "0";
-    dom.kpiValue.textContent = "Rp 0";
+    setKpiValue(0);
     dom.kpiValueNote.textContent = "Belum ada nilai PO yang terbaca";
     dom.uploadNote.textContent =
       "Unggah file LPM dan PO. Data diproses hanya di browser Anda.";
@@ -1123,6 +1207,7 @@
     dom.fileChipPo = $("dzPoChip");
     dom.statusDot = $("statusDot");
     dom.statusText = $("statusText");
+    dom.statusMessage = $("statusMessage");
     dom.kpiLpm = $("kpiLpm");
     dom.kpiPo = $("kpiPo");
     dom.kpiVendor = $("kpiVendor");
@@ -1140,6 +1225,7 @@
     dom.lpmStatusFilter = $("lpmStatusFilter");
     dom.uploaderLpm = $("uploaderLpm");
     dom.uploaderPo = $("uploaderPo");
+    dom.uploadGrid = $("uploadGrid");
     dom.resetBtn = $("resetBtn");
     dom.reloadBtn = $("reloadBtn");
     dom.changeBtn = $("changeBtn");
@@ -1176,12 +1262,55 @@
     dom.reloadBtn.addEventListener("click", reloadFiles);
     dom.changeBtn.addEventListener("click", clearDashboard);
     dom.resetBtn.addEventListener("click", clearDashboard);
+    const openBtn = $("openSideMenuBtn");
+    const closeBtn = $("closeSideMenuBtn");
+    const sidePanel = $("sidePanel");
+    if (openBtn && sidePanel) {
+      openBtn.addEventListener("click", () => {
+        sidePanel.classList.remove("hidden");
+        document.body.classList.add("no-scroll");
+      });
+    }
+    if (closeBtn && sidePanel) {
+      closeBtn.addEventListener("click", () => {
+        sidePanel.classList.add("hidden");
+        document.body.classList.remove("no-scroll");
+      });
+    }
+    const toggleBtn = $("toggleUploadBtn");
+    if (toggleBtn && dom.uploadGrid) {
+      toggleBtn.addEventListener("click", () => {
+        const hidden = dom.uploadGrid.classList.toggle("hidden");
+        toggleBtn.textContent = hidden
+          ? "Tampilkan Upload"
+          : "Sembunyikan Upload";
+      });
+    }
+
+    // Wire visible 'Pilih file' buttons to file inputs
+    Array.from(document.querySelectorAll(".uploader")).forEach((u) => {
+      const pick = u.querySelector(".uploader-actions .btn.primary");
+      const input = u.querySelector("input[type=file]");
+      if (pick && input) {
+        pick.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (
+            state.isLoading ||
+            (dom.uploadGrid && dom.uploadGrid.classList.contains("hidden"))
+          )
+            return;
+          input.click();
+        });
+      }
+    });
 
     dom.yearSelect.addEventListener("change", (e) => {
       state.selectedYear = e.target.value;
       if (state.loaded.lpm && state.loaded.po) {
-        const poEnriched = enrichPoData(state.poRows);
-        renderCharts(poEnriched);
+        renderCharts(buildPoDataset());
+        dom.lastUpdated.textContent =
+          "Diperbarui: " +
+          new Date().toLocaleTimeString("id-ID", { hour12: false });
       }
     });
 
@@ -1223,6 +1352,84 @@
         return;
       }
       applyPlainTableFilters();
+    });
+
+    // Chart fullscreen toggle buttons (icon-only)
+    const _fsButtons = Array.from(
+      document.querySelectorAll(".chart-fullscreen-btn"),
+    );
+    _fsButtons.forEach((btn) => setBtnToExpand(btn));
+
+    _fsButtons.forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const targetId = btn.getAttribute("data-target");
+        if (!targetId) return;
+        const canvas = document.getElementById(targetId);
+        if (!canvas) return;
+        const panel = canvas.closest(".panel");
+        if (!panel) return;
+
+        const entering = !panel.classList.contains("fullscreen");
+        // if entering fullscreen, remove other fullscreen panels
+        if (entering) {
+          document.querySelectorAll(".panel.fullscreen").forEach((p) => {
+            if (p !== panel) p.classList.remove("fullscreen");
+          });
+        }
+
+        panel.classList.toggle("fullscreen");
+        document.body.classList.toggle("no-scroll", entering);
+
+        // also toggle chart-box class for height adjustments
+        const chartBox = canvas.closest(".chart-box");
+        if (chartBox) chartBox.classList.toggle("fullscreen");
+
+        // update icons for all buttons
+        _fsButtons.forEach((b) => {
+          const t = b.getAttribute("data-target");
+          const c = document.getElementById(t);
+          const p = c && c.closest(".panel");
+          if (!p) return;
+          if (p.classList.contains("fullscreen")) setBtnToCollapse(b);
+          else setBtnToExpand(b);
+        });
+
+        // resize chart(s)
+        setTimeout(() => {
+          try {
+            const chartObj = Chart.getChart(canvas);
+            if (chartObj && typeof chartObj.resize === "function") {
+              chartObj.resize();
+            }
+          } catch (err) {
+            // ignore
+          }
+        }, 60);
+      });
+    });
+
+    // Allow Esc to exit fullscreen
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape") {
+        const panels = document.querySelectorAll(".panel.fullscreen");
+        if (!panels.length) return;
+        panels.forEach((p) => {
+          p.classList.remove("fullscreen");
+          const canvas = p.querySelector("canvas");
+          if (canvas) {
+            const chartBox = canvas.closest(".chart-box");
+            if (chartBox) chartBox.classList.remove("fullscreen");
+            try {
+              const chartObj = Chart.getChart(canvas);
+              if (chartObj && typeof chartObj.resize === "function")
+                chartObj.resize();
+            } catch (e) {}
+          }
+        });
+        document.body.classList.remove("no-scroll");
+        _fsButtons.forEach((b) => setBtnToExpand(b));
+      }
     });
   }
 
