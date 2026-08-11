@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard LPM & PO - PT Enera Teknika Utama</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css">
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.1.0/dist/chartjs-plugin-zoom.min.js"></script>
+    <script defer src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+    <script defer src="assets/js/dashboard.js"></script>
+</head>
+
+<body>
+    <header class="dashboard-header">
+        <div class="dashboard-header-content">
+            <h1>Dashboard Pengelolaan LPM & Purchase Order</h1>
+            <p>PT Enera Teknika Utama</p>
+        </div>
+    </header>
+
+    <main class="dashboard-shell">
+        <section class="hero">
+            <div class="hero-card">
+                <span class="kicker"><span class="kicker-dot"></span> Monitoring LPM dan PO</span>
+                <h1 class="hero-title">Dashboard yang lebih bersih, modern, dan siap dipakai harian.</h1>
+                <p class="hero-copy">
+                    Struktur file dipisah agar lebih rapi, tampilan dibuat lebih tenang tanpa terlalu banyak gradient,
+                    dan tabel menggunakan DataTables supaya sorting, search, dan pagination lebih enak dipakai.
+                </p>
+                <div class="hero-meta">
+                    <span class="pill"><strong>UI</strong> modern, clean, dan konsisten</span>
+                    <span class="pill"><strong>Table</strong> DataTables</span>
+                    <span class="pill"><strong>Parsing</strong> client-side Excel</span>
+                </div>
+            </div>
+
+            <aside class="status-card">
+                <div class="status-head">
+                    <span class="status-label">Status</span>
+                    <span class="status-chip"><span id="statusDot" class="status-dot"></span><span
+                            id="statusText">Menunggu data</span></span>
+                </div>
+                <div class="status-progress" id="statusMessage">
+                    Upload file LPM dan PO untuk memulai monitoring.
+                </div>
+                <div class="status-files">
+                    <div class="status-file"><span>LPM</span><b id="statusFileLpm">-</b></div>
+                    <div class="status-file"><span>PO</span><b id="statusFilePo">-</b></div>
+                </div>
+                <button class="btn ghost" id="resetBtn" type="button">Reset data</button>
+            </aside>
+        </section>
+
+        <div class="section-title">
+            <span class="section-dot"></span>
+            <h2>Upload File</h2>
+        </div>
+
+        <section class="upload-grid">
+            <div class="uploader" id="uploaderLpm">
+                <div class="uploader-top">
+                    <div>
+                        <h3 class="uploader-title">File LPM</h3>
+                        <p class="uploader-hint">Klik atau drag file REKAP LPM .xlsx / .xls ke area ini.</p>
+                    </div>
+                    <div class="uploader-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3v12"></path>
+                            <path d="M8 7l4-4 4 4"></path>
+                            <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path>
+                        </svg>
+                    </div>
+                </div>
+                <input id="inputLpm" type="file" accept=".xlsx,.xls">
+                <div class="uploader-actions">
+                    <button class="btn primary" type="button">Pilih file</button>
+                </div>
+                <div id="dzLpmChip"></div>
+                <div class="uploaded-file" id="dzLpmName">Belum ada file dipilih</div>
+            </div>
+
+            <div class="uploader" id="uploaderPo">
+                <div class="uploader-top">
+                    <div>
+                        <h3 class="uploader-title">File PO</h3>
+                        <p class="uploader-hint">Klik atau drag file REKAP PO .xlsx / .xls ke area ini.</p>
+                    </div>
+                    <div class="uploader-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 21V9"></path>
+                            <path d="M8 13l4 4 4-4"></path>
+                            <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"></path>
+                        </svg>
+                    </div>
+                </div>
+                <input id="inputPo" type="file" accept=".xlsx,.xls">
+                <div class="uploader-actions">
+                    <button class="btn primary" type="button">Pilih file</button>
+                </div>
+                <div id="dzPoChip"></div>
+                <div class="uploaded-file" id="dzPoName">Belum ada file dipilih</div>
+            </div>
+
+            <p class="file-note" id="uploadNote">Data hanya diproses di browser Anda. Tidak ada file yang dikirim ke
+                server.</p>
+        </section>
+
+        <section class="control-bar hidden" id="controlBar">
+            <div class="control-files">
+                <span class="tag">LPM: <strong id="controlFileLpm">-</strong></span>
+                <span class="tag">PO: <strong id="controlFilePo">-</strong></span>
+            </div>
+            <div class="control-actions">
+                <span class="control-time" id="lastUpdated"></span>
+                <button class="btn" id="reloadBtn" type="button">Muat ulang</button>
+                <button class="btn ghost" id="changeBtn" type="button">Ganti file</button>
+            </div>
+        </section>
+
+        <section id="dashboard" class="hidden">
+            <div class="section-title">
+                <span class="section-dot"></span>
+                <h2>Ringkasan</h2>
+            </div>
+
+            <div class="metrics">
+                <article class="metric">
+                    <div class="metric-head">
+                        <p class="metric-label">Total LPM</p>
+                        <div class="metric-icon">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M8 7h8"></path>
+                                <path d="M8 12h8"></path>
+                                <path d="M8 17h5"></path>
+                                <rect x="4" y="3" width="16" height="18" rx="2"></rect>
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="metric-value" id="kpiLpm">0</h3>
+                    <p class="metric-sub">Jumlah nomor LPM unik yang terbaca.</p>
+                </article>
+
+                <article class="metric">
+                    <div class="metric-head">
+                        <p class="metric-label">Total PO</p>
+                        <div class="metric-icon">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"></path>
+                                <path d="M7 6v15"></path>
+                                <path d="M17 6v15"></path>
+                                <path d="M3 12h18"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="metric-value" id="kpiPo">0</h3>
+                    <p class="metric-sub">Total purchase order yang terbaca.</p>
+                </article>
+
+                <article class="metric">
+                    <div class="metric-head">
+                        <p class="metric-label">Vendor</p>
+                        <div class="metric-icon">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 20V10"></path>
+                                <path d="M10 20V4"></path>
+                                <path d="M16 20v-8"></path>
+                                <path d="M22 20V7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="metric-value" id="kpiVendor">0</h3>
+                    <p class="metric-sub">Vendor unik di data PO.</p>
+                </article>
+
+                <article class="metric">
+                    <div class="metric-head">
+                        <p class="metric-label">Nilai PO</p>
+                        <div class="metric-icon">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2v20"></path>
+                                <path d="M17 6.5a4 4 0 0 0-4-3h-2a4 4 0 1 0 0 8h2a4 4 0 1 1 0 8h-2a4 4 0 0 1-4-3">
+                                </path>
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="metric-value" id="kpiValue">Rp 0</h3>
+                    <p class="metric-sub" id="kpiValueNote">Belum ada nilai PO yang terbaca</p>
+                </article>
+            </div>
+
+            <div class="section-title">
+                <span class="section-dot"></span>
+                <h2>Tren dan Distribusi</h2>
+                <select id="yearSelect" class="year-selector">
+                    <option value="">Pilih Tahun</option>
+                </select>
+            </div>
+
+            <div class="grid-2">
+                <article class="panel">
+                    <h3>Jumlah LPM per Bulan</h3>
+                    <div class="chart-box"><canvas id="chartLpm"></canvas></div>
+                </article>
+                <article class="panel">
+                    <h3>Jumlah PO per Bulan</h3>
+                    <div class="chart-box"><canvas id="chartPo"></canvas></div>
+                </article>
+            </div>
+
+            <div class="grid-2" style="margin-top:16px;">
+                <article class="panel">
+                    <h3>Status Item LPM</h3>
+                    <div class="chart-box small"><canvas id="chartStatus"></canvas></div>
+                    <div class="legend">
+                        <span><i style="background:#1f9d62"></i>Diterima</span>
+                        <span><i style="background:#d28b11"></i>On Proses</span>
+                        <span><i style="background:#c2415a"></i>Cancel</span>
+                    </div>
+                </article>
+                <article class="panel">
+                    <h3>Nilai PO per Vendor</h3>
+                    <div class="chart-box small"><canvas id="chartVendor"></canvas></div>
+                </article>
+            </div>
+
+            <div class="section-title">
+                <span class="section-dot"></span>
+                <h2>Data Purchase Order</h2>
+            </div>
+
+            <section class="table-card">
+                <div class="table-toolbar">
+                    <div class="table-tools">
+                        <div class="search-field">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="7"></circle>
+                                <path d="m21 21-4.3-4.3"></path>
+                            </svg>
+                            <input id="poSearch" type="text" placeholder="Cari No. PO / Vendor / Item">
+                        </div>
+                        <select id="poVendorFilter">
+                            <option value="">Semua vendor</option>
+                        </select>
+                    </div>
+                </div>
+                <table id="poTable" class="display" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>No. PO</th>
+                            <th>Tanggal</th>
+                            <th>Vendor</th>
+                            <th>Item</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+
+            <div class="section-title">
+                <span class="section-dot"></span>
+                <h2>Data LPM</h2>
+            </div>
+
+            <section class="table-card">
+                <div class="table-toolbar">
+                    <div class="table-tools">
+                        <div class="search-field">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="7"></circle>
+                                <path d="m21 21-4.3-4.3"></path>
+                            </svg>
+                            <input id="lpmSearch" type="text" placeholder="Cari No. LPM / Item / Dibuat oleh">
+                        </div>
+                        <select id="lpmStatusFilter">
+                            <option value="">Semua status</option>
+                            <option value="ON PROSES">On Proses</option>
+                            <option value="DITERIMA">Diterima</option>
+                            <option value="CANCEL">Cancel</option>
+                        </select>
+                    </div>
+                </div>
+                <table id="lpmTable" class="display" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>No. LPM</th>
+                            <th>Tanggal</th>
+                            <th>Dibuat Oleh</th>
+                            <th>Item</th>
+                            <th>Volume</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
+
+            <p class="footer"><b>PT Enera Teknika Utama</b> - Dashboard diperbarui otomatis dari file Excel yang Anda
+                unggah</p>
+        </section>
+    </main>
+</body>
+
+</html>
